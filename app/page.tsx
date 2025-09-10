@@ -1,10 +1,9 @@
-import ThemeToggle from "@/components/common/theme/ThemeToggle";
+import ChatLayout from "@/components/common/layout/ChatLayout";
 
 export default function Home() {
   return (
     <div>
-      <h2>Career Counser</h2>
-      <ThemeToggle />
+      <ChatLayout />
     </div>
   );
 }
