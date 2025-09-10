@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/common/theme/theme-provider";
-import Providers from "@/components/common/provider/Provider";
+import { TRPCProvider } from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,9 +35,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Providers>
+          <TRPCProvider>
             { children }
-          </Providers>
+          </TRPCProvider>
         </ThemeProvider>
       </body>
     </html>

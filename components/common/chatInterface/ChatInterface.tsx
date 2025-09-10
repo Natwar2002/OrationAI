@@ -4,10 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
+import { 
   Bot,
   User as UserIcon,
-  SendHorizonal
+  ArrowUp
 } from "lucide-react";
 
 interface Message {
@@ -44,12 +44,13 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
   }, [messages]);
 
   const handleSend = () => {
-    if (input.trim() === "") return;
+    // Improved validation - check if input contains only whitespace
+    if (!input || input.trim().length === 0) return;
 
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: input,
+      content: input.trim(), // Trim the message before storing
       role: "user",
       timestamp: new Date(),
     };
@@ -90,6 +91,9 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   };
+
+  // Check if input is empty or contains only whitespace
+  const isInputEmpty = !input || input.trim().length === 0;
 
   return (
     <div ref={containerRef} className={`flex flex-col h-full ${className}`}>
@@ -146,9 +150,9 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
             onClick={handleSend} 
             size="icon" 
             className="h-11 w-11 shrink-0"
-            disabled={input.trim() === ""}
+            disabled={isInputEmpty}
           >
-            <SendHorizonal className="h-4 w-4 rotate-270" />
+            <ArrowUp className="h-4 w-4" />
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
