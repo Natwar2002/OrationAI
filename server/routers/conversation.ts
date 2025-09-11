@@ -1,39 +1,151 @@
 import { z } from 'zod';
-import { trpc } from '../context';
-import { ConversationService } from '../services/conversationService';
+import { router, publicProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
 
-const conversationService = new ConversationService();
-
-export const conversationRouter = trpc.router({
-  // Create a new conversation
-  createConversation: trpc.procedure
+export const conversationRouter = router({
+  getUserConversations: publicProcedure
     .input(z.object({
-      name: z.string().min(1, 'Conversation name cannot be empty'),
-      userId: z.string().uuid(),
+      userId: z.string(),
     }))
-    .mutation(async ({ input }) => {
-      const { name, userId } = input;
-      return conversationService.createConversation(name, userId);
+    .query(async ({ ctx, input }) => {
+      try {
+        const conversations = await ctx.prisma.conversation.findMany({
+          where: {
+            participants: {
+              some: {
+                userId: input.userId,
+              },
+            },
+          },
+          include: {
+            participants: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            messages: {
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 1, // Get the latest message
+            },
+            _count: {
+              select: {
+                messages: true,
+              },
+            },
+          },
+          orderBy: {
+            updatedAt: 'desc',
+          },
+        });
+
+        return conversations;
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch conversations',
+        });
+      }
     }),
 
-  // Get a conversation by ID
-  getConversation: trpc.procedure
+  createConversation: publicProcedure
     .input(z.object({
-      id: z.string().uuid(),
+      title: z.string().optional(),
+      participantIds: z.array(z.string()).min(1, 'At least one participant is required'),
+      type: z.enum(['private', 'group']).optional().default('private'),
     }))
-    .query(async ({ input }) => {
-      const { id } = input;
-      return conversationService.getConversation(id);
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const conversation = await ctx.prisma.conversation.create({
+          data: {
+            title: input.title,
+            type: input.type,
+            participants: {
+              create: input.participantIds.map((userId) => ({
+                userId,
+                role: 'member',
+              })),
+            },
+          },
+          include: {
+            participants: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        return conversation;
+      } catch (error) {
+        console.error('Error creating conversation:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to create conversation',
+        });
+      }
     }),
 
-  // Get all conversations for a user
-  getUserConversations: trpc.procedure
+  getConversationById: publicProcedure
     .input(z.object({
-      userId: z.string().uuid(),
+      conversationId: z.string(),
     }))
-    .query(async ({ input }) => {
-      const { userId } = input;
-      return conversationService.getUserConversations(userId);
-    }),
+    .query(async ({ ctx, input }) => {
+      try {
+        const conversation = await ctx.prisma.conversation.findUnique({
+          where: { id: input.conversationId },
+          include: {
+            participants: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            messages: {
+              orderBy: {
+                createdAt: 'asc',
+              },
+              take: 50, // Limit initial messages
+            },
+          },
+        });
 
+        if (!conversation) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Conversation not found',
+          });
+        }
+
+        return conversation;
+      } catch (error) {
+        console.error('Error fetching conversation:', error);
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch conversation',
+        });
+      }
+    }),
 });

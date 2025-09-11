@@ -1,10 +1,19 @@
+// server/context.ts
 import { initTRPC } from '@trpc/server';
-import { PrismaClient } from '@prisma/client';
+import { getPrisma } from '@/lib/db';
 
-const prisma = new PrismaClient();
-
-// Create tRPC instance - this is like initializing Express
 export const trpc = initTRPC.create();
 
-// Export prisma for use in repositories
-export { prisma };
+// Safe context creation that handles Prisma not being available
+export const createContext = async () => {
+  try {
+    const prisma = getPrisma();
+    return { prisma };
+  } catch (error) {
+    console.error('Prisma not available in context:', error);
+    // Return context without prisma - your procedures will need to handle this
+    return {};
+  }
+};
+
+export type Context = Awaited<ReturnType<typeof createContext>>;

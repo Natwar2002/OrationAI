@@ -1,4 +1,4 @@
-import { prisma } from '../context';
+import { prisma } from "@/lib/db";
 
 export class ConversationRepository {
   // Create a new conversation

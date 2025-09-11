@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Sidebar from '@/components/common/sidebar/Sidebar';
 import ChatInterface from '@/components/common/chatInterface/ChatInterface';
 import ThemeToggle from '@/components/common/theme/ThemeToggle';
+import { Button } from '@/components/ui/button';
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
 
 export default function ChatLayout() {
   const [conversations, setConversations] = useState([
@@ -30,9 +32,26 @@ export default function ChatLayout() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="flex justify-between items-center p-4 border-b shrink-0">
           <h1 className="text-xl font-semibold">Counselor Chat</h1>
-          <ThemeToggle />
+          <div className='flex gap-2'>
+            <SignedOut>
+              <SignInButton>
+                <Button className="cursor-pointer" variant='outline'>
+                  Login
+                </Button>
+              </SignInButton>
+              <SignUpButton>
+                <Button className="cursor-pointer" variant='ghost'>
+                  Sign Up
+                </Button>
+              </SignUpButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
+            <ThemeToggle />
+          </div>
         </header>
-        <ChatInterface className="flex-1 overflow-hidden" />
+        <ChatInterface className="flex-1 overflow-hidden" conversationId={''} />
       </div>
     </div>
   );

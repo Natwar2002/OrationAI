@@ -1,36 +1,32 @@
 import { trpc } from '@/lib/api/client';
 
-// Hook to get messages for a conversation
 export const useMessages = (conversationId: string) => {
-  const {
-    data: messages,
-    isLoading,
-    error,
-    refetch,
-  } = trpc.message.getMessages.useQuery(
+  return trpc.message.getMessages.useQuery(
     { conversationId },
     {
-      enabled: !!conversationId, // Only run query if conversationId exists
+      enabled: !!conversationId,
+      refetchOnWindowFocus: false,
     }
   );
-
-  return {
-    messages,
-    isLoading,
-    error,
-    refetch,
-  };
 };
 
-// Hook to create a new message
 export const useCreateMessage = () => {
-  const utils = trpc.useContext();
-  const mutation = trpc.message.createMessage.useMutation({
+  const utils = trpc.useUtils();
+  
+  return trpc.message.createMessage.useMutation({
     onSuccess: (data, variables) => {
-      // Invalidate messages query for the specific conversation
-      utils.message.getMessages.invalidate({ conversationId: variables.conversationId });
+      console.log("Data: ", data);
+      
+      // Invalidate and refetch messages for this conversation
+      utils.message.getMessages.invalidate({ 
+        conversationId: variables.conversationId 
+      });
+      
+      // Also invalidate conversations to update last message
+      utils.conversation.getUserConversations.invalidate();
+    },
+    onError: (error) => {
+      console.error('Failed to create message:', error);
     },
   });
-
-  return mutation;
 };

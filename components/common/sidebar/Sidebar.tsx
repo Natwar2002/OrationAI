@@ -6,8 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   MessageSquare, 
   Plus, 
-  ChevronLeft, 
-  User, 
+  ChevronLeft,
   Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -109,22 +108,6 @@ export default function Sidebar({
           )}
         </div>
       </ScrollArea>
-
-      {/* User Section */}
-      <div className="border-t p-2">
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start gap-2",
-            isCollapsed && "px-2"
-          )}
-        >
-          <User className="h-4 w-4" />
-          <span className={cn("transition-all", isCollapsed && "hidden")}>
-            User Account
-          </span>
-        </Button>
-      </div>
     </div>
   );
 }

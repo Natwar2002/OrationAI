@@ -1,5 +1,5 @@
+import { prisma } from '@/lib/db';
 import { Role } from '@/lib/generated/prisma';
-import { prisma } from '../context';
 
 export class MessageRepository {
   // Create a new message

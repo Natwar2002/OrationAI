@@ -1,30 +1,79 @@
 import { z } from 'zod';
-import { trpc } from '../context';
-import { MessageService } from '../services/messageService';
-import { Role } from '@/lib/generated/prisma';
+import { router, publicProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
 
-const messageService = new MessageService();
-
-export const messageRouter = trpc.router({
-  // Create a new message
-  createMessage: trpc.procedure
+export const messageRouter = router({
+  getMessages: publicProcedure
     .input(z.object({
-      text: z.string().min(1, 'Message text cannot be empty'),
-      sender: z.nativeEnum(Role),
-      conversationId: z.string().uuid(),
+      conversationId: z.string(),
     }))
-    .mutation(async ({ input }) => {
-      const { text, sender, conversationId } = input;
-      return messageService.createMessage(text, sender, conversationId);
+    .query(async ({ ctx, input }) => {
+      try {
+        const messages = await ctx.prisma.message.findMany({
+          where: {
+            conversationId: input.conversationId,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+          include: {
+            conversation: true, // Include conversation data if needed
+          },
+        });
+        
+        return messages;
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch messages',
+        });
+      }
     }),
 
-  // Get messages for a conversation
-  getMessages: trpc.procedure
+  createMessage: publicProcedure
     .input(z.object({
-      conversationId: z.string().uuid(),
+      conversationId: z.string(),
+      content: z.string().min(1, 'Message content is required'),
+      senderId: z.string(),
+      type: z.enum(['text', 'image', 'file']).optional().default('text'),
     }))
-    .query(async ({ input }) => {
-      const { conversationId } = input;
-      return messageService.getMessages(conversationId);
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // First verify the conversation exists
+        const conversation = await ctx.prisma.conversation.findUnique({
+          where: { id: input.conversationId },
+        });
+
+        if (!conversation) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Conversation not found',
+          });
+        }
+
+        const message = await ctx.prisma.message.create({
+          data: {
+            content: input.content,
+            senderId: input.senderId,
+            conversationId: input.conversationId,
+            type: input.type,
+          },
+          include: {
+            conversation: true,
+          },
+        });
+
+        return message;
+      } catch (error) {
+        console.error('Error creating message:', error);
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to create message',
+        });
+      }
     }),
 });
